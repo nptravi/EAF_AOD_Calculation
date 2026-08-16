@@ -33,6 +33,9 @@ class RecoveryMaster(Base):
     Ti = Column(Float, nullable=False, default=0)
     Nb = Column(Float, nullable=False, default=0)
     Mo = Column(Float, nullable=False, default=0)
+    P = Column(Float, nullable=False, default=0)
+    S = Column(Float, nullable=False, default=0)
+    N = Column(Float, nullable=False, default=0)
 
     __table_args__ = (
         CheckConstraint("Fe >= 0 AND Fe <= 1", name="ck_recovery_fe"),
@@ -45,6 +48,9 @@ class RecoveryMaster(Base):
         CheckConstraint("Ti >= 0 AND Ti <= 1", name="ck_recovery_ti"),
         CheckConstraint("Nb >= 0 AND Nb <= 1", name="ck_recovery_nb"),
         CheckConstraint("Mo >= 0 AND Mo <= 1", name="ck_recovery_mo"),
+        CheckConstraint("P >= 0 AND P <= 1", name="ck_recovery_p"),
+        CheckConstraint("S >= 0 AND S <= 1", name="ck_recovery_s"),
+        CheckConstraint("N >= 0 AND N <= 1", name="ck_recovery_n"),
     )
 
     class MaterialGroup(Base):
