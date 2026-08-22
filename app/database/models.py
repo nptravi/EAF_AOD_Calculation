@@ -53,99 +53,90 @@ class RecoveryMaster(Base):
         CheckConstraint("N >= 0 AND N <= 1", name="ck_recovery_n"),
     )
 
-    class MaterialGroup(Base):
-        __tablename__ = "material_group_master"
 
-        id = Column(Integer, primary_key=True)
+class MaterialMaster(Base):
+    __tablename__ = "material_master"
 
-        group_name = Column(String(100), nullable=False, unique=True)
+    id = Column(Integer, primary_key=True)
 
-        C = Column(Float, nullable=False, default=0)
-        Si = Column(Float, nullable=False, default=0)
-        Mn = Column(Float, nullable=False, default=0)
-        Cr = Column(Float, nullable=False, default=0)
-        Ni = Column(Float, nullable=False, default=0)
-        Cu = Column(Float, nullable=False, default=0)
-        Ti = Column(Float, nullable=False, default=0)
-        Nb = Column(Float, nullable=False, default=0)
-        Mo = Column(Float, nullable=False, default=0)
-        P = Column(Float, nullable=False, default=0)
-        S = Column(Float, nullable=False, default=0)
-        N = Column(Float, nullable=False, default=0)
+    # Internal only — user never sees or enters this.
+    material_code = Column(Integer, nullable=False, unique=True)
 
-        bucket_only = Column(Boolean, nullable=False, default=False)
+    material_name = Column(String(100), nullable=False, unique=True)
 
-        __table_args__ = (
-            CheckConstraint("C >= 0 AND C <= 1", name="ck_group_c"),
-            CheckConstraint("Si >= 0 AND Si <= 1", name="ck_group_si"),
-            CheckConstraint("Mn >= 0 AND Mn <= 1", name="ck_group_mn"),
-            CheckConstraint("Cr >= 0 AND Cr <= 1", name="ck_group_cr"),
-            CheckConstraint("Ni >= 0 AND Ni <= 1", name="ck_group_ni"),
-            CheckConstraint("Cu >= 0 AND Cu <= 1", name="ck_group_cu"),
-            CheckConstraint("Ti >= 0 AND Ti <= 1", name="ck_group_ti"),
-            CheckConstraint("Nb >= 0 AND Nb <= 1", name="ck_group_nb"),
-            CheckConstraint("Mo >= 0 AND Mo <= 1", name="ck_group_mo"),
-            CheckConstraint("P >= 0 AND P <= 1", name="ck_group_p"),
-            CheckConstraint("S >= 0 AND S <= 1", name="ck_group_s"),
-            CheckConstraint("N >= 0 AND N <= 1", name="ck_group_n"),
-        )
+    bucket_only = Column(Boolean, nullable=False, default=False)
 
-    class Material(Base):
-        __tablename__ = "material_master"
+    lpp = Column(Float, nullable=True)
 
-        id = Column(Integer, primary_key=True)
+    # Fe is intentionally NOT stored — always calculated as
+    # balance (1 - sum of the others) wherever needed.
+    C = Column(Float, nullable=False, default=0)
+    Si = Column(Float, nullable=False, default=0)
+    Mn = Column(Float, nullable=False, default=0)
+    Cr = Column(Float, nullable=False, default=0)
+    Ni = Column(Float, nullable=False, default=0)
+    Cu = Column(Float, nullable=False, default=0)
+    Ti = Column(Float, nullable=False, default=0)
+    Nb = Column(Float, nullable=False, default=0)
+    Mo = Column(Float, nullable=False, default=0)
+    P = Column(Float, nullable=False, default=0)
+    S = Column(Float, nullable=False, default=0)
+    N = Column(Float, nullable=False, default=0)
 
-        material_name = Column(
-            String(100),
-            nullable=False,
-            unique=True
-        )
+    __table_args__ = (
+        CheckConstraint("C >= 0 AND C <= 1", name="ck_material_c"),
+        CheckConstraint("Si >= 0 AND Si <= 1", name="ck_material_si"),
+        CheckConstraint("Mn >= 0 AND Mn <= 1", name="ck_material_mn"),
+        CheckConstraint("Cr >= 0 AND Cr <= 1", name="ck_material_cr"),
+        CheckConstraint("Ni >= 0 AND Ni <= 1", name="ck_material_ni"),
+        CheckConstraint("Cu >= 0 AND Cu <= 1", name="ck_material_cu"),
+        CheckConstraint("Ti >= 0 AND Ti <= 1", name="ck_material_ti"),
+        CheckConstraint("Nb >= 0 AND Nb <= 1", name="ck_material_nb"),
+        CheckConstraint("Mo >= 0 AND Mo <= 1", name="ck_material_mo"),
+        CheckConstraint("P >= 0 AND P <= 1", name="ck_material_p"),
+        CheckConstraint("S >= 0 AND S <= 1", name="ck_material_s"),
+        CheckConstraint("N >= 0 AND N <= 1", name="ck_material_n"),
+    )
 
-        material_group_id = Column(
-            Integer,
-            ForeignKey("material_group_master.id"),
-            nullable=False
-        )
 
-    class Grade(Base):
-        __tablename__ = "grade_master"
+class Grade(Base):
+    __tablename__ = "grade_master"
 
-        id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
-        grade_name = Column(
-            String(100),
-            nullable=False,
-            unique=True
-        )
+    grade_name = Column(
+        String(100),
+        nullable=False,
+        unique=True
+    )
 
-        C = Column(Float, nullable=False, default=0)
-        Si = Column(Float, nullable=False, default=0)
-        Mn = Column(Float, nullable=False, default=0)
-        Cr = Column(Float, nullable=False, default=0)
-        Ni = Column(Float, nullable=False, default=0)
-        Cu = Column(Float, nullable=False, default=0)
-        Ti = Column(Float, nullable=False, default=0)
-        Nb = Column(Float, nullable=False, default=0)
-        Mo = Column(Float, nullable=False, default=0)
-        P = Column(Float, nullable=False, default=0)
-        S = Column(Float, nullable=False, default=0)
-        N = Column(Float, nullable=False, default=0)
+    C = Column(Float, nullable=False, default=0)
+    Si = Column(Float, nullable=False, default=0)
+    Mn = Column(Float, nullable=False, default=0)
+    Cr = Column(Float, nullable=False, default=0)
+    Ni = Column(Float, nullable=False, default=0)
+    Cu = Column(Float, nullable=False, default=0)
+    Ti = Column(Float, nullable=False, default=0)
+    Nb = Column(Float, nullable=False, default=0)
+    Mo = Column(Float, nullable=False, default=0)
+    P = Column(Float, nullable=False, default=0)
+    S = Column(Float, nullable=False, default=0)
+    N = Column(Float, nullable=False, default=0)
 
-        __table_args__ = (
-            CheckConstraint("C >= 0 AND C <= 1", name="ck_grade_c"),
-            CheckConstraint("Si >= 0 AND Si <= 1", name="ck_grade_si"),
-            CheckConstraint("Mn >= 0 AND Mn <= 1", name="ck_grade_mn"),
-            CheckConstraint("Cr >= 0 AND Cr <= 1", name="ck_grade_cr"),
-            CheckConstraint("Ni >= 0 AND Ni <= 1", name="ck_grade_ni"),
-            CheckConstraint("Cu >= 0 AND Cu <= 1", name="ck_grade_cu"),
-            CheckConstraint("Ti >= 0 AND Ti <= 1", name="ck_grade_ti"),
-            CheckConstraint("Nb >= 0 AND Nb <= 1", name="ck_grade_nb"),
-            CheckConstraint("Mo >= 0 AND Mo <= 1", name="ck_grade_mo"),
-            CheckConstraint("P >= 0 AND P <= 1", name="ck_grade_p"),
-            CheckConstraint("S >= 0 AND S <= 1", name="ck_grade_s"),
-            CheckConstraint("N >= 0 AND N <= 1", name="ck_grade_n"),
-        )
-
+    __table_args__ = (
+        CheckConstraint("C >= 0 AND C <= 1", name="ck_grade_c"),
+        CheckConstraint("Si >= 0 AND Si <= 1", name="ck_grade_si"),
+        CheckConstraint("Mn >= 0 AND Mn <= 1", name="ck_grade_mn"),
+        CheckConstraint("Cr >= 0 AND Cr <= 1", name="ck_grade_cr"),
+        CheckConstraint("Ni >= 0 AND Ni <= 1", name="ck_grade_ni"),
+        CheckConstraint("Cu >= 0 AND Cu <= 1", name="ck_grade_cu"),
+        CheckConstraint("Ti >= 0 AND Ti <= 1", name="ck_grade_ti"),
+        CheckConstraint("Nb >= 0 AND Nb <= 1", name="ck_grade_nb"),
+        CheckConstraint("Mo >= 0 AND Mo <= 1", name="ck_grade_mo"),
+        CheckConstraint("P >= 0 AND P <= 1", name="ck_grade_p"),
+        CheckConstraint("S >= 0 AND S <= 1", name="ck_grade_s"),
+        CheckConstraint("N >= 0 AND N <= 1", name="ck_grade_n"),
+    )
 
 
 class AODProvider(Base):
@@ -170,6 +161,3 @@ class AODProvider(Base):
         ForeignKey("material_master.id"),
         nullable=True
     )
-
-
-
