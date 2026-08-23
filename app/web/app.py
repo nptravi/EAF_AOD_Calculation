@@ -18,6 +18,18 @@ from app.web.pages.material_master import (
     save_material_changes,
     discard_material_changes,
 )
+from app.web.pages.grade_master import (
+    show_grade_master,
+    grade_has_unsaved_changes,
+    save_grade_changes,
+    discard_grade_changes,
+)
+from app.web.pages.aod_provider_master import (
+    show_aod_provider_master,
+    aod_provider_has_unsaved_changes,
+    save_aod_provider_changes,
+    discard_aod_provider_changes,
+)
 
 st.set_page_config(
     page_title="EAF & AOD Calculation",
@@ -51,6 +63,10 @@ def _has_unsaved_changes(master_name):
         return recovery_has_unsaved_changes()
     if master_name == "Material Master":
         return material_has_unsaved_changes()
+    if master_name == "Grade Master":
+        return grade_has_unsaved_changes()
+    if master_name == "AOD Provider Master":
+        return aod_provider_has_unsaved_changes()
     return False
 
 
@@ -59,6 +75,10 @@ def _save_changes(master_name):
         save_recovery_changes()
     elif master_name == "Material Master":
         save_material_changes()
+    elif master_name == "Grade Master":
+        save_grade_changes()
+    elif master_name == "AOD Provider Master":
+        save_aod_provider_changes()
 
 
 def _discard_changes(master_name):
@@ -66,6 +86,10 @@ def _discard_changes(master_name):
         discard_recovery_changes()
     elif master_name == "Material Master":
         discard_material_changes()
+    elif master_name == "Grade Master":
+        discard_grade_changes()
+    elif master_name == "AOD Provider Master":
+        discard_aod_provider_changes()
 
 
 def _on_master_change():
@@ -152,10 +176,10 @@ elif page == "Master Data":
             show_material_master()
 
         elif active == "Grade Master":
-            st.subheader("Grade Master")
+            show_grade_master()
 
         elif active == "AOD Provider Master":
-            st.subheader("AOD Provider Master")
+            show_aod_provider_master()
 
 elif page == "EAF & AOD Calculation":
     st.header("EAF & AOD Calculation")

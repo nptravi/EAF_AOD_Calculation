@@ -123,6 +123,11 @@ class Grade(Base):
     S = Column(Float, nullable=False, default=0)
     N = Column(Float, nullable=False, default=0)
 
+    EAF_C = Column(Float, nullable=False, default=0)
+    EAF_Cr = Column(Float, nullable=False, default=0)
+    EAF_Ni = Column(Float, nullable=False, default=0)
+    EAF_Cu = Column(Float, nullable=False, default=0)
+
     __table_args__ = (
         CheckConstraint("C >= 0 AND C <= 1", name="ck_grade_c"),
         CheckConstraint("Si >= 0 AND Si <= 1", name="ck_grade_si"),
@@ -136,6 +141,10 @@ class Grade(Base):
         CheckConstraint("P >= 0 AND P <= 1", name="ck_grade_p"),
         CheckConstraint("S >= 0 AND S <= 1", name="ck_grade_s"),
         CheckConstraint("N >= 0 AND N <= 1", name="ck_grade_n"),
+        CheckConstraint("EAF_C >= 0 AND EAF_C <= 1", name="ck_grade_eaf_c"),
+        CheckConstraint("EAF_Cr >= 0 AND EAF_Cr <= 1", name="ck_grade_eaf_cr"),
+        CheckConstraint("EAF_Ni >= 0 AND EAF_Ni <= 1", name="ck_grade_eaf_ni"),
+        CheckConstraint("EAF_Cu >= 0 AND EAF_Cu <= 1", name="ck_grade_eaf_cu"),
     )
 
 
@@ -153,7 +162,7 @@ class AODProvider(Base):
     primary_material_id = Column(
         Integer,
         ForeignKey("material_master.id"),
-        nullable=False
+        nullable=True
     )
 
     alternate_material_id = Column(

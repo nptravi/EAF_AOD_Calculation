@@ -1,3 +1,5 @@
+import math
+
 import pandas as pd
 import streamlit as st
 
@@ -5,6 +7,44 @@ from app.database.queries import (
     get_material_master,
     save_material_master,
 )
+
+
+def _to_optional_int(value):
+    if value is None:
+        return None
+
+    if isinstance(value, str) and value.strip() == "":
+        return None
+
+    try:
+        if isinstance(value, float) and math.isnan(value):
+            return None
+    except TypeError:
+        pass
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_optional_float(value):
+    if value is None:
+        return None
+
+    if isinstance(value, str) and value.strip() == "":
+        return None
+
+    try:
+        if isinstance(value, float) and math.isnan(value):
+            return None
+    except TypeError:
+        pass
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 CHEMISTRY_COLUMNS = [
@@ -116,16 +156,17 @@ def discard_material_changes():
 def save_material_changes():
     edited_df = _get_material_dataframe().drop(columns=["Fe"])
 
-    # Convert pandas NaN -> None for nullable / new-row fields before
-    # they hit the DB layer.
-    edited_df["id"] = edited_df["id"].apply(
-        lambda x: int(x) if pd.notna(x) else None
-    )
-    edited_df["LPP"] = edited_df["LPP"].apply(
-        lambda x: float(x) if pd.notna(x) else None
-    )
+    records = edited_df.to_dict("records")
 
-    save_material_master(edited_df.to_dict("records"))
+    # Convert NaN -> None here, on plain dicts. Doing this on the
+    # DataFrame column instead (e.g. via .apply) doesn't work reliably:
+    # pandas silently coerces None back to NaN to keep a numeric-dtype
+    # column homogeneous, even though the lambda returns None.
+    for row in records:
+        row["id"] = int(row["id"]) if pd.notna(row["id"]) else None
+        row["LPP"] = float(row["LPP"]) if pd.notna(row["LPP"]) else None
+
+    save_material_master(records)
 
     st.session_state.pop("material_edited_df", None)
     st.session_state.pop("material_original_df", None)
