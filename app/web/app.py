@@ -30,6 +30,9 @@ from app.web.pages.aod_provider_master import (
     save_aod_provider_changes,
     discard_aod_provider_changes,
 )
+from app.web.pages.eaf_aod_calculation import (
+    show_eaf_aod_calculation,
+)
 
 st.set_page_config(
     page_title="EAF & AOD Calculation",
@@ -182,4 +185,4 @@ elif page == "Master Data":
             show_aod_provider_master()
 
 elif page == "EAF & AOD Calculation":
-    st.header("EAF & AOD Calculation")
+    show_eaf_aod_calculation()

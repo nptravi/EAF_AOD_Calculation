@@ -21,6 +21,14 @@ def get_recovery_master():
         )
         return result.scalars().all()
 
+def get_recovery_for_unit_code(unit_code):
+    with SessionLocal() as session:
+        result = session.execute(
+            select(RecoveryMaster).where(
+                RecoveryMaster.unit_code == unit_code
+            )
+        )
+        return result.scalars().first()
 
 def get_units():
     with SessionLocal() as session:
@@ -152,6 +160,14 @@ def get_grade_master():
         )
         return result.scalars().all()
 
+def get_grade_composition(grade_name):
+    with SessionLocal() as session:
+        result = session.execute(
+            select(Grade)
+            .where(Grade.grade_name == grade_name)
+            .order_by(Grade.grade_name)
+        )
+        return result.scalars().first()
 
 def save_grade_master(rows):
     """
