@@ -5,6 +5,7 @@ from app.database.queries import (
     get_grade_master,
     get_material_master,
     get_recovery_for_unit_code,
+    get_element_provider,
 )
 
 from app.calculations.eaf import (
@@ -33,6 +34,7 @@ def show_eaf_aod_calculation():
     # --- Grade selection -----------------------------------------------
     grades = get_grade_master()
     grade_names = [g.grade_name for g in grades]
+    Si_provider = get_element_provider("Si").material_name
 
     col1, col2 = st.columns([0.2,3])
     with col1:
@@ -63,11 +65,9 @@ def show_eaf_aod_calculation():
     materials = get_material_master()
     material_by_name = {m.material_name: m for m in materials}
     st.subheader("EAF Input Materials:")
-    col3, col4 = st.columns([1,3])
+    col3, col4, col5 = st.columns([1,1,2])
     # --- Bucket ----------------------------------------------------------
     with col3:
-        st.text("Bucket")
-
         bucket_config = {
             "material": st.column_config.SelectboxColumn(
                 "Material",
@@ -76,7 +76,6 @@ def show_eaf_aod_calculation():
             ),
             "qty": st.column_config.NumberColumn("Qty (T)", step=0.01, format="%.2f", width=75),
         }
-
         if "bucket_baseline" not in st.session_state:
             st.session_state["bucket_baseline"] = _blank_material_df(BUCKET_DEFAULT_ROWS)
 
@@ -89,67 +88,78 @@ def show_eaf_aod_calculation():
         )
 
         # --- FAFA --------------------------------------------------------------
-        st.text("FAFA")
-
-        fafa_config = {
-            "material": st.column_config.SelectboxColumn(
+    eaf_output_chemistry = {}
+    with col4:
+        special_materials = [Si_provider,"Oxygen"]
+        special_config = {
+            "material": st.column_config.TextColumn(
                 "Material",
-                options=sorted(m.material_name for m in materials if not m.bucket_only),
+                disabled=True,
                 width=200,
             ),
-            "qty": st.column_config.NumberColumn("Qty (T)", step=0.01, format="%.2f",width=75),
+            "qty": st.column_config.NumberColumn(
+                "Qty (T)",
+                step=0.01,
+                format="%.2f",
+                width=75,
+            ),
         }
 
-        if "fafa_baseline" not in st.session_state:
-            st.session_state["fafa_baseline"] = _blank_material_df(FAFA_DEFAULT_ROWS)
+        if "special_baseline" not in st.session_state:
+            st.session_state["special_baseline"] = pd.DataFrame(
+                {
+                    "material": [Si_provider, "Oxygen"],
+                    "qty": [0.0, 0.0],
+                }
+            )
 
-        fafa_edited = st.data_editor(
-            st.session_state["fafa_baseline"],
-            num_rows="dynamic",
-            column_config=fafa_config,
+        special_edited = st.data_editor(
+            st.session_state["special_baseline"],
+            num_rows="fixed",
+            column_config=special_config,
             hide_index=True,
-            key="fafa_editor",
+            key="special_editor",
         )
-    with col4:
-        st.subheader("EAF Calculation Result will be shown here")
+        # --- Calculate ---------------------------------------------------------
+        if st.button("Calculate EAF"):
+            recovery_row = get_recovery_for_unit_code(3501)
+            eaf_materials = {}
+            for _, row in bucket_edited.iterrows():
+                if row.material is not None:
+                    if row.material not in eaf_materials:
+                        eaf_materials[row.material] = row.qty
+                    else:
+                        eaf_materials[row.material] += row.qty
+            for _, row in special_edited.iterrows():
+                if row.material is not None:
+                    if row.material not in eaf_materials:
+                        eaf_materials[row.material] = row.qty
+                    else:
+                        eaf_materials[row.material] += row.qty
+            params = {
+                "grade": selected_grade_name,
+                "eaf_materials": eaf_materials,
+            }
+            result = calculate_eaf(params)
+            st.subheader(f"EAF output: {result['eaf_weight']:.1f} T")
+            eaf_output_chemistry = {
+                element: [f"{result['eaf_chemistry'][element] * 100:.3f}"]
+                for element in DISPLAY_ELEMENTS
+            }
 
-    # --- Calculate ---------------------------------------------------------
-    if st.button("Calculate EAF"):
-        recovery_row = get_recovery_for_unit_code(3501)
-        eaf_materials = {}
-        for _,row in bucket_edited.iterrows():
-            if row.material is not None:
-                if row.material not in eaf_materials:
-                    eaf_materials[row.material] = row.qty
-                else:
-                    eaf_materials[row.material] += row.qty
-        for _,row in fafa_edited.iterrows():
-            if row.material is not None:
-                if row.material not in eaf_materials:
-                    eaf_materials[row.material] = row.qty
-                else:
-                    eaf_materials[row.material] += row.qty
-        params = {
-            "grade": selected_grade_name,
-            "eaf_materials": eaf_materials,
-        }
-        result = calculate_eaf(params)
-        st.subheader(f"EAF output: {result['eaf_weight']:.1f} T")
-        eaf_output_chemistry = {
-            element: [f"{result['eaf_chemistry'][element] * 100:.3f}"]
-            for element in DISPLAY_ELEMENTS
-        }
+    with col5:
+        st.subheader("Results Summary Here")
         st.subheader("EAF Chemistry (%)")
         st.table(eaf_output_chemistry)
 
-        # TODO: loop bucket_edited + fafa_edited rows
-        # TODO: for each row -> material_by_name[row["Material"]], qty = row["Qty (T)"]
-        # TODO: per element: contribution += qty * material.<element> * getattr(recovery_row, element)
-        #       (Fe isn't stored on MaterialMaster — it's 1 - sum(other 12))
-        # TODO: output_weight = sum(contributions.values())
-        # TODO: output_chemistry[el] = contributions[el] / output_weight * 100
+            # TODO: loop bucket_edited + fafa_edited rows
+            # TODO: for each row -> material_by_name[row["Material"]], qty = row["Qty (T)"]
+            # TODO: per element: contribution += qty * material.<element> * getattr(recovery_row, element)
+            #       (Fe isn't stored on MaterialMaster — it's 1 - sum(other 12))
+            # TODO: output_weight = sum(contributions.values())
+            # TODO: output_chemistry[el] = contributions[el] / output_weight * 100
 
-        pass
+
 
     # --- Output --------------------------------------------------------------
     # TODO: display output_weight + output_chemistry table

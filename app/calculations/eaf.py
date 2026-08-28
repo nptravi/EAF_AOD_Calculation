@@ -88,12 +88,13 @@ def calculate_eaf(params):
     print(f"inside calculate_eaf: material_rows: {material_rows}")
     material_lookup = get_material_lookup()
     recovery = get_eaf_recovery()
-
+    oxygen_qty = 0.0
     contributions = {element: 0.0 for element in ELEMENTS}
     for material_name in material_rows:
-        print(f"material_name: {material_name} qty: {material_rows[material_name]}")
-        print(f"material: {material_lookup[material_name]}")
-        print(f"recovery: {recovery}")
+        if material_name == "Oxygen":
+            oxygen_qty += material_rows[material_name]
+            print("Skipping Oxygen. Calculation Code to be added after completing all other materials.")
+            continue
         contrib = {element:(
                                material_lookup[material_name][element] *
                                recovery[element] *
@@ -101,9 +102,25 @@ def calculate_eaf(params):
                             )   for element in ELEMENTS}
         for element in ELEMENTS:
             contributions[element] += contrib[element]
-
+            if element == "Si":
+                print(f"{element} contrib from {material_name}: {contrib[element]}")
+    print(f"Oxygen qty: {oxygen_qty}. Calculated contributions before Oxygen adjustment: {contributions} ")
+    # Oxygen adjustment
+    contrib = {element: 0.0 for element in ELEMENTS}
+    contrib["Fe"] = - oxygen_qty * 0.1 / 1000.0
+    if (0.9 * contributions["C"]) > oxygen_qty/2000.0:
+        contrib["C"] = -oxygen_qty/2000.0
+    else:
+        contrib["C"] = -0.9 * contributions["C"]
+    if (contributions["Si"]) > oxygen_qty/2000.0:
+        contrib["Si"] = -oxygen_qty/2000.0
+    else:
+        contrib["Si"] = -contributions["Si"]
+    for element in ELEMENTS:
+        contributions[element] += contrib[element]
     output_weight = sum(contributions.values())
     output_chemistry = {element:contributions[element]/output_weight for element in ELEMENTS}
+    print(f"Calculated contributions after Oxygen adjustment: {contributions} ")
 
     return {
         "eaf_weight": output_weight,

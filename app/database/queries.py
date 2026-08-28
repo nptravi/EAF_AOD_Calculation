@@ -240,6 +240,30 @@ def get_eligible_provider_materials():
         )
         return result.scalars().all()
 
+def get_material_details_by_id(mat_id):
+    """
+    Materials selectable as an AOD provider — excludes Bucket Only
+    materials, since those aren't meant to be added during AOD.
+    """
+    with SessionLocal() as session:
+        result = session.execute(
+            select(MaterialMaster)
+            .where(MaterialMaster.id == mat_id)  # noqa: E712
+        )
+        return result.scalars().first()
+
+def get_material_details_by_name(mat_name):
+    """
+    Materials selectable as an AOD provider — excludes Bucket Only
+    materials, since those aren't meant to be added during AOD.
+    """
+    with SessionLocal() as session:
+        result = session.execute(
+            select(MaterialMaster)
+            .where(MaterialMaster.material_name == mat_name)  # noqa: E712
+        )
+        return result.scalars().first()
+
 
 def get_aod_provider_master():
     with SessionLocal() as session:
@@ -247,6 +271,16 @@ def get_aod_provider_master():
             select(AODProvider)
         )
         return result.scalars().all()
+
+def get_element_provider(element):
+    with SessionLocal() as session:
+        result = session.execute(
+            select(AODProvider)
+            .where(AODProvider.element == element)
+        )
+        mat_id = result.scalars().first().primary_material_id
+
+        return get_material_details_by_id(mat_id)
 
 
 def save_aod_provider_master(rows):
