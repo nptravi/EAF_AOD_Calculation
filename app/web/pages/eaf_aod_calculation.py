@@ -5,6 +5,7 @@ from app.database.queries import (
     get_grade_master,
     get_material_master,
     get_recovery_for_unit_code,
+    get_element_provider_details,
     get_element_provider,
 )
 
@@ -34,7 +35,7 @@ def show_eaf_aod_calculation():
     # --- Grade selection -----------------------------------------------
     grades = get_grade_master()
     grade_names = [g.grade_name for g in grades]
-    Si_provider = get_element_provider("Si").material_name
+    Si_provider = get_element_provider_details("Si").material_name
 
     col1, col2 = st.columns([0.2,3])
     with col1:
@@ -136,9 +137,13 @@ def show_eaf_aod_calculation():
                         eaf_materials[row.material] = row.qty
                     else:
                         eaf_materials[row.material] += row.qty
+            mn_provider = get_element_provider("Mn")
+            mn_override = {"material": mn_provider["alternate"].material_name, "qty": 0.0}
+
             params = {
                 "grade": selected_grade_name,
                 "eaf_materials": eaf_materials,
+                "mn_override": mn_override,
             }
             result = calculate_eaf(params)
             st.subheader(f"EAF output: {result['eaf_weight']:.1f} T")

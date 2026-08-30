@@ -272,13 +272,43 @@ def get_aod_provider_master():
         )
         return result.scalars().all()
 
+def get_aod_provider_master_with_materials():
+    with SessionLocal() as session:
+        result = session.execute(
+            select(AODProvider)
+        )
+        providers = result.scalars().all()
+        return {
+            provider.element: {
+                "primary": provider.primary_material,
+                "alternate": provider.alternate_material,
+            } for provider in providers
+        }
+
 def get_element_provider(element):
     with SessionLocal() as session:
         result = session.execute(
             select(AODProvider)
             .where(AODProvider.element == element)
         )
-        mat_id = result.scalars().first().primary_material_id
+        prv = result.scalars().first()
+        provider = {"primary":get_material_details_by_id(prv.primary_material_id),
+                    "alternate": None}
+        if prv.alternate_material_id is not None:
+            provider["alternate"] = get_material_details_by_id(prv.alternate_material_id)
+        return provider
+
+def get_element_provider_details(element):
+    with SessionLocal() as session:
+        result = session.execute(
+            select(AODProvider)
+            .where(AODProvider.element == element)
+        )
+        prv = result.scalars().first()
+        if prv is None:
+            print(f"No provider found for element {element}")
+            return None
+        mat_id = prv.primary_material_id
 
         return get_material_details_by_id(mat_id)
 

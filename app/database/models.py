@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, CheckConstraint, ForeignKey, Boolean
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -170,3 +170,6 @@ class AODProvider(Base):
         ForeignKey("material_master.id"),
         nullable=True
     )
+
+    primary_material = relationship("MaterialMaster", foreign_keys=[primary_material_id])
+    alternate_material = relationship("MaterialMaster", foreign_keys=[alternate_material_id])
