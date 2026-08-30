@@ -7,6 +7,7 @@ left for you to fill in.
 """
 from pandas.core.arrays.datetimelike import ensure_arraylike_for_datetimelike
 from sqlalchemy import case
+from sqlalchemy.testing import force_drop_names
 
 from app.database.queries import (
     get_material_master,
@@ -146,7 +147,14 @@ def calculate_eaf(params):
     mn_override = params["mn_override"]
     chemistry_obj = get_grade_composition(params["grade"])
     chemistry_needed = {
-        "Cr": chemistry_obj.Cr
+        "C": chemistry_obj.C,
+        "Si": chemistry_obj.Si,
+        "Mn": chemistry_obj.Mn,
+        "Cr": chemistry_obj.Cr,
+        "Ni": chemistry_obj.Ni,
+        "Cu": chemistry_obj.Cu,
+        "Nb": chemistry_obj.Nb,
+        "Mo": chemistry_obj.Mo
     }
 
     # Initialization of values / parameters
@@ -165,8 +173,8 @@ def calculate_eaf(params):
     print(f"aod_recovery: {aod_recovery}")
     print(f"chemistry_needed: {chemistry_needed}")
     iter_count=0
-    # elements_to_calculate = ["Cr", "Mn", "Ni", "Cu", "Nb", "Mo"]
-    elements_to_calculate = ["Cr"]
+    elements_to_calculate = ["Cr", "Mn", "Ni", "Cu", "Nb", "Mo","Si"]
+
 
     aod_materials_contributions = {
         mtrl: {
@@ -182,39 +190,162 @@ def calculate_eaf(params):
             for element in ELEMENTS
         }
 
+    materials_having_si = [
+        mtrl for mtrl in material_lookup
+        if material_lookup[mtrl]["Si"] > 0.1
+    ]
 
 
 
-    while iter_count<1:
+    while iter_count<50:
         iter_count+=1
         # Calculate material quantities
         for elm in elements_to_calculate:
             aod_wt = 0
             for material in aod_materials_contributions:
-                print(f"material identifier 001: {aod_materials_contributions[material]}")
+                #print(f"material identifier 001: {aod_materials_contributions[material]}")
                 for elm2 in ELEMENTS:
                     aod_wt += aod_materials_contributions[material][elm2]
             mtrl = get_element_provider(elm)
-            match elm:
-                case "Cr":
-                    mtrl_wt = ((aod_wt * chemistry_needed[elm]) - (eaf_output_weight * eaf_output_chemistry[elm] * aod_recovery[elm])) / (aod_recovery[elm] * material_lookup[mtrl["primary"].material_name][elm])
-                    material_usage[mtrl["primary"].material_name] = mtrl_wt
-                case "Mn":
-                    pass
-                case "Ni":
-                    pass
-                case "Cu":
-                    pass
-                case "Nb":
-                    pass
-                case "Mo":
-                    pass
-            print(f"iteration: {iter_count} Material usage: {material_usage}")
-        # Calculate material contributions
+            primary_material_name = mtrl["primary"].material_name
+            if mtrl["alternate"] is None:
+                alternate_material_name = None
+            else:
+                alternate_material_name = mtrl["alternate"].material_name
 
-        # Calculate effect of Oxygen
+            calculated_material_name = primary_material_name
+            calculated_material_weight = 0
+            forced_material_name = None
+            forced_qty = 0
+
+            if elm == "Mn":
+                if alternate_material_name is not None:
+                    forced_material_name = params["mn_override"]["material"]
+                    forced_qty = params["mn_override"]["qty"]
+            if elm == "Si":
+                # Other Material Contribution Calculation
+                forced_material_contribution = {elm2: 0 for elm2 in ELEMENTS}
+                other_materials_Si_contribution = sum(
+                    aod_materials_contributions[mat][elm]
+                    for mat in aod_materials_contributions.keys()
+                    if mat != primary_material_name
+                )
+                # FeSi Contribution Calculation
+                if calculated_material_name is not None:
+                    calculated_material_weight = (
+                            (
+                                    (aod_wt * chemistry_needed[elm]) -
+                                    other_materials_Si_contribution
+                            ) /
+                            (
+                                    aod_recovery[elm] *
+                                    material_lookup[calculated_material_name][elm]
+                            )
+                    )
+                    if calculated_material_weight < 0:
+                        calculated_material_weight = 0
+                    calculated_material_contribution = {
+                        elm2:
+                            calculated_material_weight *
+                            aod_recovery[elm2] *
+                            material_lookup[calculated_material_name][elm2]
+                        for elm2 in ELEMENTS
+                    }
+                    aod_materials_contributions[calculated_material_name] = calculated_material_contribution.copy()
+                    material_usage[calculated_material_name] = calculated_material_weight
+                else:
+                    print(f"No provider material for {elm}")
+            else:
+                # Calculation for elements other than Si
+                # Forced Material Calculation
+                forced_material_contribution = {elm2:0 for elm2 in ELEMENTS}
+                if forced_material_name is not None:
+                    forced_material_contribution = {
+                        elm2:
+                            forced_qty *
+                            aod_recovery[elm2] *
+                            material_lookup[forced_material_name][elm]
+                        for elm2 in ELEMENTS
+                    }
+                    material_usage[forced_material_name] = forced_qty
+                    aod_materials_contributions[forced_material_name] = forced_material_contribution.copy()
+                # Other Material Calculation
+                if calculated_material_name is not None:
+                    calculated_material_weight = (
+                                (
+                                    (aod_wt * chemistry_needed[elm]) -
+                                    (eaf_output_weight * eaf_output_chemistry[elm] * aod_recovery[elm]) -
+                                    (forced_material_contribution[elm])
+                                ) /
+                                (
+                                   aod_recovery[elm] *
+                                   material_lookup[calculated_material_name][elm]
+                                )
+                    )
+                    calculated_material_contribution = {
+                        elm2:
+                            calculated_material_weight *
+                            aod_recovery[elm2] *
+                            material_lookup[calculated_material_name][elm2]
+                        for elm2 in ELEMENTS
+                    }
+                    aod_materials_contributions[calculated_material_name] = calculated_material_contribution.copy()
+                    material_usage[calculated_material_name] = calculated_material_weight
+                else:
+                    print(f"No provider material for {elm}")
+
+        print(f"iteration: {iter_count} Material usage: {material_usage}")
+        #print(f"aod materials contributions: {aod_materials_contributions}")
+
+        # TODO Calculate effect of Oxygen
+        oxidation_loss = {}
+        oxidation_fe =oxidation_rates["Fe"] * sum(mat.get("Fe") for mat in aod_materials_contributions.values())
+        oxidation_c = ((aod_wt * chemistry_needed["C"]) -
+                               sum(
+                                   mat.get("C")
+                                        for mat in aod_materials_contributions.values()
+                                        if mat !="Oxygen"
+                               )
+                       )
+        oxidation_cr = sum(mat.get("Cr") for mat in aod_materials_contributions.values()) * oxidation_rates["Cr"]
+        oxidation_mn = (
+                        sum(
+                            mat.get("Mn")
+                                for mat in aod_materials_contributions.values()
+                                if mat not in materials_having_si
+                            ) *
+                        oxidation_rates["Mn"]
+        )
+        # Real losses due to oxidation of elements already accounted through recovery. Hence oxidation of Cr and Mn is
+        # assumed to be recovered with Si
+        # Calculation below calculation is based on chemical reaction for reducing Oxides of Cr and Mn with Si
+        oxidation_si = (oxidation_cr * 84.0 / 208.0) + (oxidation_mn * 28.0 / 110.0)
+        aod_materials_contributions["Oxygen"]={elm2:0 for elm2 in ELEMENTS}
+        aod_materials_contributions["Oxygen"]["Fe"] = -oxidation_fe
+        aod_materials_contributions["Oxygen"]["C"] =  oxidation_c
+        aod_materials_contributions["Oxygen"]["Si"] = -oxidation_si
 
         # Calculate Max deviation in elements chemistry
+        combined_aod_contributions = {
+            elm2: sum(mat.get(elm2) for mat in aod_materials_contributions.values())
+            for elm2 in ELEMENTS
+        }
+        #print(f"Combined aod contributions: {combined_aod_contributions}")
+        aod_output_weight = sum(combined_aod_contributions.values())
+        aod_output_chemistry = {
+            elm2: combined_aod_contributions[elm2]/aod_output_weight
+            for elm2 in ELEMENTS
+        }
+        #print(f"aod output chemistry: {aod_output_chemistry}")
+        chemistry_deviation = {
+            elm2: abs(chemistry_needed[elm2] - aod_output_chemistry[elm2])
+            for elm2 in chemistry_needed.keys()
+        }
+        print(f"chemistry deviation: {chemistry_deviation} Max Deviation: {max(chemistry_deviation.values())}")
+        if max(chemistry_deviation.values()) < 0.00001:
+            break
+    print(f"AOD output weight: {aod_output_weight}")
+    print(f"AOD chemistry: {aod_output_chemistry}")
 
         # If max deviation < 0.002% break the loop
 
