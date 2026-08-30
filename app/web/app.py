@@ -39,18 +39,27 @@ st.set_page_config(
     page_icon="🏭",
     layout="wide"
 )
-
-st.title("EAF & AOD Calculation")
+# Hide Streamlit's automatic page navigation
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.sidebar.title("Navigation")
 
 page = st.sidebar.radio(
     "Go to",
     [
-        "Home",
-        "Master Data",
         "EAF & AOD Calculation",
-    ]
+        "Master Data"
+    ],
+    index=0
 )
 
 MASTER_OPTIONS = [
@@ -110,17 +119,14 @@ def _on_master_change():
     else:
         st.session_state["active_master"] = new_selection
 
-
-if page == "Home":
-    st.write("Welcome to the EAF & AOD Calculation application.")
+if page == "EAF & AOD Calculation":
+    st.header("EAF & AOD Calculation")
+    show_eaf_aod_calculation()
 
 elif page == "Master Data":
-
     st.header("Master Data")
-
     if "active_master" not in st.session_state:
         st.session_state["active_master"] = MASTER_OPTIONS[0]
-
     if "selected_master" not in st.session_state:
         st.session_state["selected_master"] = st.session_state["active_master"]
 
@@ -184,5 +190,3 @@ elif page == "Master Data":
         elif active == "AOD Provider Master":
             show_aod_provider_master()
 
-elif page == "EAF & AOD Calculation":
-    show_eaf_aod_calculation()

@@ -99,22 +99,23 @@ def get_aod_recovery():
     return {element: getattr(recovery_row, element) for element in ELEMENTS}
 
 
-def calculate_eaf(params):
+def calculate_eaf_aod(params):
     """
     params: object having grade and eaf_materials as sub objects (material_name: qty
 
     Fill in the mass-balance calculation below.
     """
     material_rows = params["eaf_materials"]
-    print(f"inside calculate_eaf: material_rows: {material_rows}")
+    #print(f"inside calculate_eaf: material_rows: {material_rows}")
     material_lookup = get_material_lookup()
     eaf_recovery = get_eaf_recovery()
     oxygen_qty = 0.0
     eaf_contributions = {element: 0.0 for element in ELEMENTS}
+    eaf_charge_weight = sum(material_rows.values())
     for material_name in material_rows:
         if material_name == "Oxygen":
             oxygen_qty += material_rows[material_name]
-            print("Skipping Oxygen. Calculation Code to be added after completing all other materials.")
+            eaf_charge_weight = eaf_charge_weight - material_rows[material_name]
             continue
         contrib = {element:(
                                material_lookup[material_name][element] *
@@ -123,9 +124,9 @@ def calculate_eaf(params):
                             )   for element in ELEMENTS}
         for element in ELEMENTS:
             eaf_contributions[element] += contrib[element]
-            if element == "Si":
-                print(f"{element} contrib from {material_name}: {contrib[element]}")
-    print(f"Oxygen qty: {oxygen_qty}. Calculated contributions before Oxygen adjustment: {eaf_contributions} ")
+            #if element == "Si":
+                #print(f"{element} contrib from {material_name}: {contrib[element]}")
+    #print(f"Oxygen qty: {oxygen_qty}. Calculated contributions before Oxygen adjustment: {eaf_contributions} ")
     # Oxygen adjustment
     contrib = {element: 0.0 for element in ELEMENTS}
     contrib["Fe"] = - oxygen_qty * 0.1 / 1000.0
@@ -141,7 +142,7 @@ def calculate_eaf(params):
         eaf_contributions[element] += contrib[element]
     eaf_output_weight = sum(eaf_contributions.values())
     eaf_output_chemistry = {element:eaf_contributions[element]/eaf_output_weight for element in ELEMENTS}
-    print(f"Calculated contributions after Oxygen adjustment: {eaf_contributions} ")
+    #print(f"Calculated contributions after Oxygen adjustment: {eaf_contributions} ")
     oxidation_rates = {"Fe": 0.02, "Cr": 0.2, "Mn": 0.4}
     # AOD Calculation
     mn_override = params["mn_override"]
@@ -169,9 +170,9 @@ def calculate_eaf(params):
         if aod_providers[mat]["alternate"] is not None:
             material_usage[aod_providers[mat]["alternate"].material_name] = 0
 
-    print(f"material_usage: {material_usage}")
-    print(f"aod_recovery: {aod_recovery}")
-    print(f"chemistry_needed: {chemistry_needed}")
+    #print(f"material_usage: {material_usage}")
+    #print(f"aod_recovery: {aod_recovery}")
+    #print(f"chemistry_needed: {chemistry_needed}")
     iter_count=0
     elements_to_calculate = ["Cr", "Mn", "Ni", "Cu", "Nb", "Mo","Si"]
 
@@ -197,7 +198,7 @@ def calculate_eaf(params):
 
 
 
-    while iter_count<50:
+    while iter_count<13:
         iter_count+=1
         # Calculate material quantities
         for elm in elements_to_calculate:
@@ -294,19 +295,18 @@ def calculate_eaf(params):
                 else:
                     print(f"No provider material for {elm}")
 
-        print(f"iteration: {iter_count} Material usage: {material_usage}")
+        #print(f"iteration: {iter_count} Material usage: {material_usage}")
         #print(f"aod materials contributions: {aod_materials_contributions}")
 
         # TODO Calculate effect of Oxygen
         oxidation_loss = {}
         oxidation_fe =oxidation_rates["Fe"] * sum(mat.get("Fe") for mat in aod_materials_contributions.values())
-        oxidation_c = ((aod_wt * chemistry_needed["C"]) -
-                               sum(
-                                   mat.get("C")
-                                        for mat in aod_materials_contributions.values()
-                                        if mat !="Oxygen"
-                               )
-                       )
+        total_carbon = 0
+        for mat in aod_materials_contributions:
+            if mat == "Oxygen": continue
+            for elm in aod_materials_contributions[mat].keys():
+                if elm == "C": total_carbon += aod_materials_contributions[mat][elm]
+        oxidation_c = ((aod_wt * chemistry_needed["C"]) - total_carbon)
         oxidation_cr = sum(mat.get("Cr") for mat in aod_materials_contributions.values()) * oxidation_rates["Cr"]
         oxidation_mn = (
                         sum(
@@ -330,6 +330,7 @@ def calculate_eaf(params):
             elm2: sum(mat.get(elm2) for mat in aod_materials_contributions.values())
             for elm2 in ELEMENTS
         }
+        #print(f"aod material contributions: {combined_aod_contributions}")
         #print(f"Combined aod contributions: {combined_aod_contributions}")
         aod_output_weight = sum(combined_aod_contributions.values())
         aod_output_chemistry = {
@@ -341,11 +342,11 @@ def calculate_eaf(params):
             elm2: abs(chemistry_needed[elm2] - aod_output_chemistry[elm2])
             for elm2 in chemistry_needed.keys()
         }
-        print(f"chemistry deviation: {chemistry_deviation} Max Deviation: {max(chemistry_deviation.values())}")
+        #print(f"chemistry deviation: {chemistry_deviation} Max Deviation: {max(chemistry_deviation.values())}")
         if max(chemistry_deviation.values()) < 0.00001:
             break
-    print(f"AOD output weight: {aod_output_weight}")
-    print(f"AOD chemistry: {aod_output_chemistry}")
+    #print(f"AOD output weight: {aod_output_weight}")
+    #print(f"AOD chemistry: {aod_output_chemistry}")
 
         # If max deviation < 0.002% break the loop
 
@@ -353,6 +354,10 @@ def calculate_eaf(params):
 
 
     return {
+        "eaf_charge_weight": eaf_charge_weight,
         "eaf_weight": eaf_output_weight,
         "eaf_chemistry": eaf_output_chemistry,
+        "aod_additions": material_usage,
+        "aod_weight": aod_output_weight,
+        "aod_chemistry": aod_output_chemistry
     }
