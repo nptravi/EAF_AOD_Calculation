@@ -15,7 +15,7 @@ from app.database.queries import (
     get_grade_composition,
     get_element_provider,
     get_element_provider_details, get_aod_provider_master, get_material_details_by_name, get_material_details_by_id,
-    get_aod_provider_master_with_materials,
+    get_aod_provider_master_with_materials, get_oxidation_master,
 )
 
 ELEMENTS = [
@@ -143,7 +143,10 @@ def calculate_eaf_aod(params):
     eaf_output_weight = sum(eaf_contributions.values())
     eaf_output_chemistry = {element:eaf_contributions[element]/eaf_output_weight for element in ELEMENTS}
     #print(f"Calculated contributions after Oxygen adjustment: {eaf_contributions} ")
-    oxidation_rates = {"Fe": 0.02, "Cr": 0.2, "Mn": 0.4}
+    oxidations = get_oxidation_master()
+    oxidation_rates = {
+        oxi.element: oxi.oxidation_rate for oxi in oxidations
+    }
     # AOD Calculation
     mn_override = params["mn_override"]
     chemistry_obj = get_grade_composition(params["grade"])
@@ -298,7 +301,7 @@ def calculate_eaf_aod(params):
         #print(f"iteration: {iter_count} Material usage: {material_usage}")
         #print(f"aod materials contributions: {aod_materials_contributions}")
 
-        # TODO Calculate effect of Oxygen
+        # Calculate effect of Oxygen
         oxidation_loss = {}
         oxidation_fe =oxidation_rates["Fe"] * sum(mat.get("Fe") for mat in aod_materials_contributions.values())
         total_carbon = 0

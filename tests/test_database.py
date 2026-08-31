@@ -1,19 +1,9 @@
 from sqlalchemy.exc import IntegrityError
 
-from app.database.database import SessionLocal
-from app.database.models import RecoveryMaster
+from app.database.queries import get_oxidation_master
 
-with SessionLocal() as session:
-    test_recovery = RecoveryMaster(
-        unit_code=3501,
-        Fe=1.10
-    )
-
-    session.add(test_recovery)
-
-    try:
-        session.commit()
-        print("ERROR: Invalid recovery was accepted")
-    except IntegrityError:
-        session.rollback()
-        print("SUCCESS: Invalid recovery was rejected")
+oxidations = get_oxidation_master()
+oxidation_rates = {
+    oxi.element: oxi.oxidation_rate for oxi in oxidations
+}
+print(f"oxidation rates: {oxidation_rates}")

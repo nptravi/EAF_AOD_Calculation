@@ -30,6 +30,12 @@ from app.web.pages.aod_provider_master import (
     save_aod_provider_changes,
     discard_aod_provider_changes,
 )
+from app.web.pages.oxidation_master import (
+    show_oxidation_master,
+    oxidation_has_unsaved_changes,
+    save_oxidation_changes,
+    discard_oxidation_changes,
+)
 from app.web.pages.eaf_aod_calculation import (
     show_eaf_aod_calculation,
 )
@@ -67,6 +73,7 @@ MASTER_OPTIONS = [
     "Material Master",
     "Grade Master",
     "AOD Provider Master",
+    "Oxidation Master",
 ]
 
 
@@ -79,6 +86,8 @@ def _has_unsaved_changes(master_name):
         return grade_has_unsaved_changes()
     if master_name == "AOD Provider Master":
         return aod_provider_has_unsaved_changes()
+    if master_name == "Oxidation Master":
+        return oxidation_has_unsaved_changes()
     return False
 
 
@@ -91,6 +100,8 @@ def _save_changes(master_name):
         save_grade_changes()
     elif master_name == "AOD Provider Master":
         save_aod_provider_changes()
+    elif master_name == "Oxidation Master":
+        save_oxidation_changes()
 
 
 def _discard_changes(master_name):
@@ -102,6 +113,8 @@ def _discard_changes(master_name):
         discard_grade_changes()
     elif master_name == "AOD Provider Master":
         discard_aod_provider_changes()
+    elif master_name == "Oxidation Master":
+        discard_oxidation_changes()
 
 
 def _on_master_change():
@@ -189,4 +202,8 @@ elif page == "Master Data":
 
         elif active == "AOD Provider Master":
             show_aod_provider_master()
+
+        elif active == "Oxidation Master":
+            show_oxidation_master()
+
 

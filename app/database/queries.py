@@ -1,7 +1,7 @@
 from sqlalchemy import select, func
 
 from app.database.database import SessionLocal
-from app.database.models import RecoveryMaster, Unit, MaterialMaster, Grade, AODProvider
+from app.database.models import RecoveryMaster, Unit, MaterialMaster, Grade, AODProvider, Oxidation
 
 
 def _is_missing(value):
@@ -272,6 +272,13 @@ def get_aod_provider_master():
         )
         return result.scalars().all()
 
+def get_oxidation_master():
+    with SessionLocal() as session:
+        result = session.execute(
+            select(Oxidation)
+        )
+        return result.scalars().all()
+
 def get_aod_provider_master_with_materials():
     with SessionLocal() as session:
         result = session.execute(
@@ -365,5 +372,43 @@ def save_aod_provider_master(rows):
                     **values
                 )
                 session.add(provider)
+
+        session.commit()
+
+def save_oxidation_master(rows):
+    """
+    rows: list of dicts, one per oxidation element row:
+        {"Element": ..., "Oxidation Rate": ...}
+
+    Element is unique in the database.
+    If an element already exists, its oxidation_rate is updated.
+    Otherwise, a new row is inserted.
+    """
+    with SessionLocal() as session:
+
+        for row in rows:
+            element = str(row["Element"]).strip()
+            oxidation_rate = row.get("Oxidation Rate")
+
+            # Convert missing/blank value to the model default
+            if _is_missing(oxidation_rate):
+                oxidation_rate = 0.0
+            else:
+                oxidation_rate = float(oxidation_rate) / 100.0
+
+            oxidation = session.execute(
+                select(Oxidation).where(
+                    Oxidation.element == element
+                )
+            ).scalar_one_or_none()
+
+            if oxidation:
+                oxidation.oxidation_rate = oxidation_rate
+            else:
+                oxidation = Oxidation(
+                    element=element,
+                    oxidation_rate=oxidation_rate
+                )
+                session.add(oxidation)
 
         session.commit()

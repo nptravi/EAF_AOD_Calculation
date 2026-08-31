@@ -31,7 +31,7 @@ def _blank_material_df(num_rows):
 
 
 def show_eaf_aod_calculation():
-    st.subheader("FeMn / SiMn override to be implemented")
+    st.subheader("FeMn / SiMn override Calculation to be checked. It is coming wrong")
     # --- Grade selection -----------------------------------------------
     grades = get_grade_master()
     grade_names = [g.grade_name for g in grades]
@@ -132,6 +132,13 @@ def show_eaf_aod_calculation():
             hide_index=True,
             key="special_editor",
         )
+        mn_provider = get_element_provider("Mn")
+        mn_override_material = None
+        mn_override_qty = 0
+        if mn_provider["alternate"] is not None:
+            mn_override_options =[mn_provider["primary"].material_name,mn_provider["alternate"].material_name]
+            mn_override_material = st.selectbox("Forced Material: ",mn_override_options,index=0)
+            mn_override_qty = st.number_input("Forced Qty (T)", min_value=0.0, step=0.01, format="%.2f")
 
         # --- Calculate ---------------------------------------------------------
         #st.markdown("""
@@ -160,8 +167,8 @@ def show_eaf_aod_calculation():
                     eaf_materials[row.material] = row.qty
                 else:
                     eaf_materials[row.material] += row.qty
-        mn_provider = get_element_provider("Mn")
-        mn_override = {"material": mn_provider["alternate"].material_name, "qty": 0.0}
+
+        mn_override = {"material": mn_override_material, "qty": mn_override_qty}
 
         params = {
             "grade": selected_grade_name,

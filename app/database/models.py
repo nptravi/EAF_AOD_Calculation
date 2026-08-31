@@ -173,3 +173,21 @@ class AODProvider(Base):
 
     primary_material = relationship("MaterialMaster", foreign_keys=[primary_material_id])
     alternate_material = relationship("MaterialMaster", foreign_keys=[alternate_material_id])
+
+class Oxidation(Base):
+    __tablename__ = "oxidation_master"
+
+    id = Column(Integer, primary_key=True)
+
+    element = Column(
+        String(10),
+        nullable=False,
+        unique=True
+    )
+
+    oxidation_rate = Column(
+        Float,
+        nullable=False,
+        default=0.0
+    )
+
