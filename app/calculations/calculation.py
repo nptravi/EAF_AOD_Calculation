@@ -226,6 +226,11 @@ def calculate_eaf_aod(params):
                 if alternate_material_name is not None:
                     forced_material_name = params["mn_override"]["material"]
                     forced_qty = params["mn_override"]["qty"]
+                    if forced_material_name == primary_material_name:
+                        calculated_material_name = alternate_material_name
+                    else:
+                        calculated_material_name = primary_material_name
+                    # print(f"iteration: {iter_count} forced_material_name: {forced_material_name} forced_qty: {forced_qty}")
             if elm == "Si":
                 # Other Material Contribution Calculation
                 forced_material_contribution = {elm2: 0 for elm2 in ELEMENTS}
@@ -268,11 +273,16 @@ def calculate_eaf_aod(params):
                         elm2:
                             forced_qty *
                             aod_recovery[elm2] *
-                            material_lookup[forced_material_name][elm]
+                            material_lookup[forced_material_name][elm2]
                         for elm2 in ELEMENTS
                     }
                     material_usage[forced_material_name] = forced_qty
                     aod_materials_contributions[forced_material_name] = forced_material_contribution.copy()
+                    #print(f"iteration: {iter_count} "
+                     #     f"forced_material_name: {forced_material_name} "
+                      #    f"forced_qty: {forced_qty} "
+                       #   f"aod_materials_contributions[forced_material_name] = "
+                        #  f"{aod_materials_contributions[forced_material_name]}")
                 # Other Material Calculation
                 if calculated_material_name is not None:
                     calculated_material_weight = (

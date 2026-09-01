@@ -31,7 +31,7 @@ def _blank_material_df(num_rows):
 
 
 def show_eaf_aod_calculation():
-    st.subheader("FeMn / SiMn override Calculation to be checked. It is coming wrong")
+    st.subheader("Calculator is working. Accuracy to be verified.")
     # --- Grade selection -----------------------------------------------
     grades = get_grade_master()
     grade_names = [g.grade_name for g in grades]
